@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* slick carousel default styles */
+@import '~slick-carousel/slick/slick.css';
+@import '~slick-carousel/slick/slick-theme.css';
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+/* Custom Netflix-like dark theme */
+body {
+  background-color: #141414;
+  /* Netflix's dark background */
+  color: #ffffff;
+  /* White text for readability */
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Netflix-like font */
+}
+
+.custom-toast-dark {
+  background-color: #333; /* Dark background */
+  color: white; /* White text */
+}
+
+.custom-toast-body {
+  font-family: 'Arial', sans-serif;
+}
+
+.toastify__toast-icon svg {
+  fill: red; /* Customize icon color if needed */
+}
+
+.toast-success {
+  background-color: #333; /* Dark background */
+  color: #e74c3c; /* Red text for movie name */
+}
+
+.toast-error {
+  background-color: #333; /* Dark background */
+  color: #e74c3c; /* Red text for movie name */
+}
+
+.toast-info {
+  background-color: #333; /* Dark background */
+  color: #e74c3c; /* Red text for movie name */
+}
+
+.container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #e5e5e5;
+  /* Netflix's off-white headings */
+}
+
+
+
+/* Custom button styles */
+button {
+  background-color: #e50914;
+  /* Netflix's signature red */
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #f40612;
+  /* Slightly lighter red on hover */
+}
+
+/* Loader CSS */
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.loader .dot {
+  width: 12px;
+  height: 12px;
+  margin: 0 4px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: bounce 0.6s infinite alternate;
+}
+
+.loader .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loader .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+/* styles.css */
+
+.video-player-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.video-player-wrapper {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.video-player-wrapper > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.r1{
+  background-color: #2c2c2c;
+}
+
+
+/* Movie cards */
+.movie-card {
+  background-color: #2c2c2c;
+  /* Darker background for movie cards */
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  /* Subtle shadow on hover */
+}
+
+.movie-card img {
+  width: 100%;
+  border-bottom: 3px solid #e50914;
+  /* Red accent under the movie poster */
+}
+
+.movie-card h2 {
+  padding: 1rem;
+  font-size: 1.25rem;
+}
+
+/* series cards */
+.series-card {
+  background-color: 'blue';
+  /* Darker background for movie cards */
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.series-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  /* Subtle shadow on hover */
+}
+
+.series-card img {
+  width: 100%;
+  border-bottom: 3px solid #e50914;
+  /* Red accent under the movie poster */
+}
+
+.series-card h2 {
+  padding: 1rem;
+  font-size: 1.25rem;
+}
+
+/* Trailer iframe styling */
+iframe {
+  border-radius: 10px;
+  border: none;
+  margin-top: 1rem;
+}
+.slick-prev, .slick-next {
+  color: white; /* Netflix-style arrows */
+  z-index: 10;
+  font-size: 24px;
+}
+
+.slick-prev:hover, .slick-next:hover {
+  color: #E50914; /* Netflix-red hover color */
+}
+
+.movie-card {
+  width: 200px; /* Adjust the card size to fit better in the slider */
+}
+
+/* CSS for Carousel */
+.carousel-container {
+  width: 100%; /* Set the max width of the carousel */
+  margin: 0 auto;    /* Center the carousel */
+}
+
+.carousel-image {
+  height: 500px; /* Limit the height */
+  width: 100%;   /* Make sure the image takes full width of the container */
+  object-fit: cover; /* Cover the container without stretching */
+}
+
+.slick-dots li button:before {
+  color: white; /* Dots style */
+}
+
+.slick-dots li.slick-active button:before {
+  color: #E50914; /* Active dot in Netflix red */
+}
+
+/* Custom scrollbar styles */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1c1c1c;
+  /* Darker track background */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #e50914;
+  /* Red scrollbar thumb */
+  border-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+

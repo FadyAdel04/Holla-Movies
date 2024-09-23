@@ -1,101 +1,165 @@
-import Image from "next/image";
+"use client"
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import Slider from 'react-slick';
+import { ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import MovieCard from '../components/MovieCard';
+import SeriesCard from '../components/SeriesCard';
+import LandingPage from '../components/LandingPage';
+import PopularActors from '../components/PopularActors';
+import CustomArrow from '../components/CustomArrow';
+import MovieGenreSection from '../components/MovieGenreSection';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
+const API_KEY = '9f36ddb9ac01ad234be50dc7429b040b';
+
+export default function HomePage() {
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [trendingSeries, setTrendingSeries] = useState([]);
+  const [topRatedMovies, setTopRatedMovies] = useState([]);
+  const [popularActors, setPopularActors] = useState([]);
+  const router = useRouter();
+  const auth = getAuth();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const trendingMoviesResponse = await axios.get(`https://api.themoviedb.org/3/trending/movie/day?api_key=${API_KEY}`);
+        const trendingSeriesResponse = await axios.get(`https://api.themoviedb.org/3/trending/tv/day?api_key=${API_KEY}`);
+        const topRated = await axios.get(`https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}`);
+        const actors = await axios.get(`https://api.themoviedb.org/3/person/popular?api_key=${API_KEY}`);
+
+        setTrendingMovies(trendingMoviesResponse.data.results);
+        setTrendingSeries(trendingSeriesResponse.data.results);
+        setTopRatedMovies(topRated.data.results);
+        setPopularActors(actors.data.results);
+      } catch (error) {
+        console.error('Error fetching data: ', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push('/sign-up');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth, router]);
+
+  const sliderSettings = {
+    dots: false,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 6,
+    slidesToScroll: 1,
+    nextArrow: <CustomArrow direction="right" />,
+    prevArrow: <CustomArrow direction="left" />,
+    responsive: [
+      {
+        breakpoint: 1280, // Adjust for larger screens
+        settings: {
+          slidesToShow: 5,
+        },
+      },
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 3,
+        },
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 2,
+        },
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 1,
+          arrows: false,
+          centerMode: true,
+          centerPadding: '20px',
+        },
+      },
+    ],
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <>
+      <LandingPage />
+      <div className="container px-4 mx-auto space-y-12">
+        {/* Movie Genre Section */}
+        <section className="mt-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Browse by Genre</h2>
+          <MovieGenreSection />
+        </section>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        {/* Trending Movies */}
+        <section className="mt-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Movies</h2>
+        <Slider {...sliderSettings} className="relative">
+          {trendingMovies.map((movie) => (
+            <div className="p-2" key={movie.id}>
+              <MovieCard movie={movie} />
+            </div>
+          ))}
+        </Slider>
+        </section>
+
+        {/* Trending Series */}
+        <section className="mt-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Series</h2>
+        <Slider {...sliderSettings} className="relative">
+          {trendingSeries.map((series) => (
+            <div className="p-2" key={series.id}>
+              <SeriesCard series={series} />
+            </div>
+          ))}
+        </Slider>
+        </section>
+
+        {/* Top Rated Movies */}
+        <section className="mt-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Top Rated Movies</h2>
+        <Slider {...sliderSettings} className="relative">
+          {topRatedMovies.map((movie) => (
+            <div className="p-2" key={movie.id}>
+              <MovieCard movie={movie} />
+            </div>
+          ))}
+        </Slider>
+        </section>
+
+        {/* Popular Actors */}
+        <section className="mt-8">
+          <PopularActors actors={popularActors} />
+        </section>
+      </div>
+
+      {/* Toast Container */}
+      <ToastContainer
+        theme="dark"
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </>
   );
 }

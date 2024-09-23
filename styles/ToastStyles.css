@@ -1,0 +1,26 @@
+/* Toast container custom styles */
+.toast {
+    background-color: #333; /* Dark background */
+    color: #e74c3c; /* Red text for movie name */
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 16px;
+  }
+  
+  /* Success Toast */
+  .toast-success {
+    background-color: #333; /* Dark background */
+    color: #e74c3c; /* Red text for movie name */
+  }
+  
+  /* Error Toast */
+  .toast-error {
+    background-color: #333; /* Dark background */
+    color: #e74c3c; /* Red text for movie name */
+  }
+  
+  /* Info Toast */
+  .toast-info {
+    background-color: #333; /* Dark background */
+    color: #e74c3c; /* Red text for movie name */
+  }
