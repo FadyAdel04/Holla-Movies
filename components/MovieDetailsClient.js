@@ -3,8 +3,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { UserCircleIcon } from "@heroicons/react/solid";
 import { Parallax } from "react-parallax";
 import axios from "axios";
-import { FaHeart, FaRegHeart, FaBookmark, FaGlobe,FaImdb, FaRegBookmark, FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
-import { MdBookmark, MdBookmarkBorder } from 'react-icons/md'; // Import bookmark icons
+import { useUser } from "@clerk/nextjs";  // Clerk useUser hook
+import { useRouter } from "next/navigation";  // Import Next.js router
+import { FaHeart, FaRegHeart, FaBookmark, FaGlobe, FaImdb, FaRegBookmark, FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
+import { MdBookmark, MdBookmarkBorder } from 'react-icons/md';
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import ActorCard from "./ActorCard";
@@ -15,11 +17,9 @@ import VideoPlayer from "./VideoPlayer";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import CustomArrow from './CustomArrow'; // Import the CustomArrow component
-import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Import Firebase Auth
+import CustomArrow from './CustomArrow';
 
 const API_KEY = "9f36ddb9ac01ad234be50dc7429b040b"; // Replace with your actual API key
-
 
 export default function MovieDetailsClient({ movie, credits, productionCompanies, externalIds }) {
   const [videos, setVideos] = useState([]);
@@ -29,28 +29,19 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
   const [reviewsList, setReviewsList] = useState([]);
   const [activeTab, setActiveTab] = useState("Cast");
   const videoPlayerRef = useRef(null);
-  const [user, setUser] = useState(null); // User state to check if user is logged in
+  
+  const { user } = useUser();  // Get user from Clerk
+  const router = useRouter();  // Next.js router
 
-  const auth = getAuth();
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Set user if logged in
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
-
-  const handleAuthCheck = async (action) => {
+  const handleAuthCheck = (action) => {
     if (!user) {
       toast.warning("Please sign in to add to favorites or watchlist.");
       router.push('/sign-in'); // Redirect to sign-in page
     } else {
-      action(); // If user is authenticated, perform the action
+      action(); // Perform the action if the user is authenticated
     }
   };
-  
+
   useEffect(() => {
     async function fetchVideos() {
       try {
@@ -86,8 +77,6 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
     fetchReviews();
   }, [movie.id]);
 
-
-
   // Fetch favorite and watchlist status when the component mounts
   useEffect(() => {
     const fetchStatus = async () => {
@@ -122,7 +111,6 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
     e.stopPropagation();
     handleAuthCheck(async () => {
       try {
-        // Determine if the action is to add or remove
         const isAdding = !isFavorite;
         
         await axios.post(
@@ -151,8 +139,6 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
             theme: "dark",
           });
         }
-  
-        if (onFavoriteChange) onFavoriteChange(); // Notify parent component
       } catch (error) {
         console.error('Error updating favorites:', error);
       }
@@ -163,7 +149,6 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
     e.stopPropagation();
     handleAuthCheck(async () => {
       try {
-        // Determine if the action is to add or remove
         const isAdding = !inWatchlist;
   
         await axios.post(
@@ -192,19 +177,10 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
             theme: "dark",
           });
         }
-  
-        if (onWatchlistChange) onWatchlistChange(); // Notify parent component
       } catch (error) {
         console.error('Error updating watchlist:', error);
       }
     });
-  };
-  
-  const handleVideoClick = (video) => {
-    setSelectedVideo(video);
-    if (videoPlayerRef.current) {
-      videoPlayerRef.current.scrollIntoView({ behavior: "smooth" });
-    }
   };
 
   return (
@@ -239,10 +215,10 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
                   <h1 className="text-4xl lg:text-5xl font-bold mb-4">{movie.title} <span className="text-gray-400">{movie.release_date.slice(0, 4)}</span></h1>
                   <div className="flex items-center space-x-3">
                     <div className="text-red-500 cursor-pointer" onClick={toggleFavorite}>
-                      {isFavorite ? <FaHeart size={28} /> : <FaRegHeart size={28} />}
+                      {isFavorite ? <FaHeart size={28} /> : <FaRegHeart size={28} className="text-white" />}
                     </div>
                     <div className="text-yellow-500 cursor-pointer" onClick={toggleWatchlist}>
-                      {inWatchlist ? <MdBookmark size={28} /> : <MdBookmarkBorder size={28} />}
+                      {inWatchlist ? <MdBookmark size={28} /> : <MdBookmarkBorder size={28} className="text-white" />}
                     </div>
                   </div>
                 </div>

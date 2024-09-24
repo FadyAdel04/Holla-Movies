@@ -1,34 +1,23 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { FaStar, FaStarHalfAlt, FaRegStar, FaHeart, FaRegHeart } from 'react-icons/fa';
-import { MdBookmark, MdBookmarkBorder } from 'react-icons/md'; // Import bookmark icons
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Import Firebase Auth
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { FaStar, FaStarHalfAlt, FaRegStar, FaHeart, FaRegHeart } from "react-icons/fa";
+import { MdBookmark, MdBookmarkBorder } from "react-icons/md"; // Import bookmark icons
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useUser } from "@clerk/nextjs"; // Import useUser from Clerk
 
 export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange }) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [inWatchlist, setInWatchlist] = useState(false);
-  const [user, setUser] = useState(null); // User state to check if user is logged in
-
-  const auth = getAuth();
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Set user if logged in
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
+  const { user } = useUser(); // Get user from Clerk
 
   const handleAuthCheck = async (action) => {
     if (!user) {
       toast.warning("Please sign in to add to favorites or watchlist.");
-      router.push('/sign-in'); // Redirect to sign-in page
+      router.push("/sign-in"); // Redirect to sign-in page
     } else {
       action(); // If user is authenticated, perform the action
     }
@@ -37,14 +26,17 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
   // Fetch favorite and watchlist status when the component mounts
   useEffect(() => {
     const fetchStatus = async () => {
+      if (!user) return; // Exit if user is not authenticated
+
       try {
+        const accountId = user.id; // Get the user's account ID
         const [favResponse, watchlistResponse] = await Promise.all([
-          axios.get(`https://api.themoviedb.org/3/account/{account_id}/favorite/tv`, {
+          axios.get(`https://api.themoviedb.org/3/account/${accountId}/favorite/tv`, {
             headers: {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
             },
           }),
-          axios.get(`https://api.themoviedb.org/3/account/{account_id}/watchlist/tv`, {
+          axios.get(`https://api.themoviedb.org/3/account/${accountId}/watchlist/tv`, {
             headers: {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
             },
@@ -57,12 +49,12 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
         setIsFavorite(isFav);
         setInWatchlist(isWatchlisted);
       } catch (error) {
-        console.error('Error fetching status:', error);
+        console.error("Error fetching status:", error);
       }
     };
 
     fetchStatus();
-  }, [series.id]);
+  }, [series.id, user]);
 
   const handleClick = () => {
     router.push(`/series/${series.id}`);
@@ -87,12 +79,13 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
     e.stopPropagation();
     handleAuthCheck(async () => {
       try {
+        const accountId = user.id; // Get the user's account ID
         const isAdding = !isFavorite;
-        
+
         await axios.post(
-          'https://api.themoviedb.org/3/account/{account_id}/favorite',
+          `https://api.themoviedb.org/3/account/${accountId}/favorite`,
           {
-            media_type: 'tv',
+            media_type: "tv",
             media_id: series.id,
             favorite: isAdding,
           },
@@ -118,8 +111,8 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
 
         if (onFavoriteChange) onFavoriteChange(); // Notify parent component
       } catch (error) {
-        console.error('Error updating favorites:', error);
-        toast.error('An error occurred. Please try again.');
+        console.error("Error updating favorites:", error);
+        toast.error("An error occurred. Please try again.");
       }
     });
   };
@@ -128,12 +121,13 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
     e.stopPropagation();
     handleAuthCheck(async () => {
       try {
+        const accountId = user.id; // Get the user's account ID
         const isAdding = !inWatchlist;
 
         await axios.post(
-          'https://api.themoviedb.org/3/account/{account_id}/watchlist',
+          `https://api.themoviedb.org/3/account/${accountId}/watchlist`,
           {
-            media_type: 'tv',
+            media_type: "tv",
             media_id: series.id,
             watchlist: isAdding,
           },
@@ -159,8 +153,8 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
 
         if (onWatchlistChange) onWatchlistChange(); // Notify parent component
       } catch (error) {
-        console.error('Error updating watchlist:', error);
-        toast.error('An error occurred. Please try again.');
+        console.error("Error updating watchlist:", error);
+        toast.error("An error occurred. Please try again.");
       }
     });
   };
@@ -170,7 +164,7 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
   return (
     <motion.div
       className="movie-card relative bg-gray-800 rounded-lg shadow-lg hover:scale-105 transition-transform cursor-pointer"
-      style={{ height: '100%' }}
+      style={{ height: "100%" }}
       onClick={handleClick}
     >
       <img
@@ -195,9 +189,7 @@ export default function SeriesCard({ series, onFavoriteChange, onWatchlistChange
       </div>
 
       <div className="p-4 h-32 flex flex-col justify-between">
-        <h3 className="text-lg font-bold text-white truncate">
-          {series.name}
-        </h3>
+        <h3 className="text-lg font-bold text-white truncate">{series.name}</h3>
 
         <div className="flex items-center">
           {getStars()}

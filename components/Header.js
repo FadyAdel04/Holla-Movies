@@ -1,46 +1,35 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
-import { auth, provider } from "../app/firebase";
+import { useUser, useSignIn } from "@clerk/nextjs";
+import { SignOutButton } from "@clerk/nextjs"; // Import SignOutButton
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import SearchBar from "./SearchBar";
 
 export default function Header() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user, isSignedIn } = useUser();
+  const { signIn } = useSignIn();
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    // Load the profile image URL from local storage
+    const storedProfileImageUrl = localStorage.getItem("profileImageUrl");
+    console.log("Stored Profile Image URL:", storedProfileImageUrl); // Debug log
+    if (storedProfileImageUrl) {
+      setProfileImageUrl(storedProfileImageUrl);
+    } else if (user?.profileImageUrl) {
+      setProfileImageUrl(user.profileImageUrl); // Fallback to Clerk image if not found
+    }
+  }, [user]);
 
   const handleSignIn = async () => {
     try {
-      await signInWithPopup(auth, provider);
-      router.push("/sign--in");
+      await signIn(); // This will open the sign-in modal
     } catch (error) {
       console.error("Error signing in: ", error);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      router.push("/sign-in");
-    } catch (error) {
-      console.error("Error signing out: ", error);
     }
   };
 
@@ -75,19 +64,19 @@ export default function Header() {
           </div>
 
           {/* User Profile or Sign In */}
-          {user ? (
+          {isSignedIn ? (
             <Menu as="div" className="relative inline-block text-left">
               <div>
                 <Menu.Button className="flex items-center bg-gray-700 text-white px-4 py-2 rounded-lg">
-                  {user.photoURL ? (
+                  {profileImageUrl ? (
                     <img
-                      src={user.photoURL}
+                      src={profileImageUrl}
                       alt="User Profile"
                       className="h-6 w-6 rounded-full"
                     />
                   ) : (
                     <span className="h-6 w-6 text-white bg-gray-500 rounded-full flex items-center justify-center">
-                      {user.email[0].toUpperCase()}
+                      {user.firstName[0].toUpperCase()}
                     </span>
                   )}
                 </Menu.Button>
@@ -121,14 +110,15 @@ export default function Header() {
                     {/* Sign Out Button */}
                     <Menu.Item>
                       {({ active }) => (
-                        <button
-                          onClick={handleSignOut}
-                          className={`${
-                            active ? "bg-gray-600" : "bg-gray-700"
-                          } block w-full text-left px-4 py-2 text-sm text-white rounded transition-colors duration-200`}
-                        >
-                          Sign Out
-                        </button>
+                        <SignOutButton signOutCallback={() => router.push("/sign-in")}>
+                          <button
+                            className={`${
+                              active ? "bg-gray-600" : "bg-gray-700"
+                            } block w-full text-left px-4 py-2 text-sm text-white rounded transition-colors duration-200`}
+                          >
+                            Sign Out
+                          </button>
+                        </SignOutButton>
                       )}
                     </Menu.Item>
                   </div>

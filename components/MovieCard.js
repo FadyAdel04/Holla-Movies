@@ -6,24 +6,13 @@ import { FaStar, FaStarHalfAlt, FaRegStar, FaHeart, FaRegHeart } from 'react-ico
 import { MdBookmark, MdBookmarkBorder } from 'react-icons/md'; // Import bookmark icons
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Import Firebase Auth
+import { useUser } from '@clerk/nextjs'; // Import useUser from Clerk
 
 export default function MovieCard({ movie, onFavoriteChange, onWatchlistChange }) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [inWatchlist, setInWatchlist] = useState(false);
-  const [user, setUser] = useState(null); // User state to check if user is logged in
-
-  const auth = getAuth();
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Set user if logged in
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
+  const { user } = useUser(); // Get user from Clerk
 
   const handleAuthCheck = async (action) => {
     if (!user) {
@@ -37,14 +26,17 @@ export default function MovieCard({ movie, onFavoriteChange, onWatchlistChange }
   // Fetch favorite and watchlist status when the component mounts
   useEffect(() => {
     const fetchStatus = async () => {
+      if (!user) return; // Exit if user is not authenticated
+
       try {
+        const accountId = user.id; // Get the user's account ID
         const [favResponse, watchlistResponse] = await Promise.all([
-          axios.get(`https://api.themoviedb.org/3/account/{account_id}/favorite/movies`, {
+          axios.get(`https://api.themoviedb.org/3/account/${accountId}/favorite/movies`, {
             headers: {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
             },
           }),
-          axios.get(`https://api.themoviedb.org/3/account/{account_id}/watchlist/movies`, {
+          axios.get(`https://api.themoviedb.org/3/account/${accountId}/watchlist/movies`, {
             headers: {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
             },
@@ -62,7 +54,7 @@ export default function MovieCard({ movie, onFavoriteChange, onWatchlistChange }
     };
 
     fetchStatus();
-  }, [movie.id]);
+  }, [movie.id, user]);
 
   const handleClick = () => {
     router.push(`/movie/${movie.id}`);
@@ -83,90 +75,89 @@ export default function MovieCard({ movie, onFavoriteChange, onWatchlistChange }
     );
   };
 
-const toggleFavorite = async (e) => {
-  e.stopPropagation();
-  handleAuthCheck(async () => {
-    try {
-      // Determine if the action is to add or remove
-      const isAdding = !isFavorite;
-      
-      await axios.post(
-        "https://api.themoviedb.org/3/account/{account_id}/favorite",
-        {
-          media_type: "movie",
-          media_id: movie.id,
-          favorite: isAdding,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+  const toggleFavorite = async (e) => {
+    e.stopPropagation();
+    handleAuthCheck(async () => {
+      try {
+        const accountId = user.id; // Get the user's account ID
+        const isAdding = !isFavorite;
+
+        await axios.post(
+          `https://api.themoviedb.org/3/account/${accountId}/favorite`,
+          {
+            media_type: "movie",
+            media_id: movie.id,
+            favorite: isAdding,
           },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+            },
+          }
+        );
+
+        setIsFavorite(isAdding);
+        if (isAdding) {
+          toast.success(`${movie.title} added to favorites!`, {
+            position: "bottom-right",
+            theme: "dark",
+          });
+        } else {
+          toast.info(`${movie.title} removed from favorites.`, {
+            position: "bottom-right",
+            theme: "dark",
+          });
         }
-      );
 
-      setIsFavorite(isAdding);
-      if (isAdding) {
-        toast.success(`${movie.title} added to favorites!`, {
-          position: "bottom-right",
-          theme: "dark",
-        });
-      } else {
-        toast.info(`${movie.title} removed from favorites.`, {
-          position: "bottom-right",
-          theme: "dark",
-        });
+        if (onFavoriteChange) onFavoriteChange(); // Notify parent component
+      } catch (error) {
+        console.error('Error updating favorites:', error);
+        toast.error('An error occurred. Please try again.');
       }
+    });
+  };
 
-      if (onFavoriteChange) onFavoriteChange(); // Notify parent component
-    } catch (error) {
-      console.error('Error updating favorites:', error);
-      toast.error('An error occurred. Please try again.');
-    }
-  });
-};
+  const toggleWatchlist = async (e) => {
+    e.stopPropagation();
+    handleAuthCheck(async () => {
+      try {
+        const accountId = user.id; // Get the user's account ID
+        const isAdding = !inWatchlist;
 
-const toggleWatchlist = async (e) => {
-  e.stopPropagation();
-  handleAuthCheck(async () => {
-    try {
-      // Determine if the action is to add or remove
-      const isAdding = !inWatchlist;
-
-      await axios.post(
-        "https://api.themoviedb.org/3/account/{account_id}/watchlist",
-        {
-          media_type: "movie",
-          media_id: movie.id,
-          watchlist: isAdding,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+        await axios.post(
+          `https://api.themoviedb.org/3/account/${accountId}/watchlist`,
+          {
+            media_type: "movie",
+            media_id: movie.id,
+            watchlist: isAdding,
           },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+            },
+          }
+        );
+
+        setInWatchlist(isAdding);
+        if (isAdding) {
+          toast.success(`${movie.title} added to watchlist!`, {
+            position: "bottom-right",
+            theme: "dark",
+          });
+        } else {
+          toast.info(`${movie.title} removed from watchlist.`, {
+            position: "bottom-right",
+            theme: "dark",
+          });
         }
-      );
 
-      setInWatchlist(isAdding);
-      if (isAdding) {
-        toast.success(`${movie.title} added to watchlist!`, {
-          position: "bottom-right",
-          theme: "dark",
-        });
-      } else {
-        toast.info(`${movie.title} removed from watchlist.`, {
-          position: "bottom-right",
-          theme: "dark",
-        });
+        if (onWatchlistChange) onWatchlistChange(); // Notify parent component
+      } catch (error) {
+        console.error('Error updating watchlist:', error);
+        toast.error('An error occurred. Please try again.');
       }
-
-      if (onWatchlistChange) onWatchlistChange(); // Notify parent component
-    } catch (error) {
-      console.error('Error updating watchlist:', error);
-      toast.error('An error occurred. Please try again.');
-    }
-  });
-};
-
+    });
+  };
 
   const releaseYear = new Date(movie.release_date).getFullYear();
 

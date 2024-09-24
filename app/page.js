@@ -13,7 +13,7 @@ import LandingPage from '../components/LandingPage';
 import PopularActors from '../components/PopularActors';
 import CustomArrow from '../components/CustomArrow';
 import MovieGenreSection from '../components/MovieGenreSection';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useUser } from '@clerk/nextjs'; // Import useUser from Clerk
 import { useRouter } from 'next/navigation';
 
 const API_KEY = '9f36ddb9ac01ad234be50dc7429b040b';
@@ -24,7 +24,7 @@ export default function HomePage() {
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [popularActors, setPopularActors] = useState([]);
   const router = useRouter();
-  const auth = getAuth();
+  const { user } = useUser(); // Get user from Clerk
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,14 +47,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push('/sign-up');
-      }
-    });
-
-    return () => unsubscribe();
-  }, [auth, router]);
+    if (!user) {
+      router.push('/sign-up'); // Redirect to sign-up if user is not authenticated
+    }
+  }, [user, router]);
 
   const sliderSettings = {
     dots: false,
@@ -66,7 +62,7 @@ export default function HomePage() {
     prevArrow: <CustomArrow direction="left" />,
     responsive: [
       {
-        breakpoint: 1280, // Adjust for larger screens
+        breakpoint: 1280, 
         settings: {
           slidesToShow: 5,
         },
@@ -107,38 +103,38 @@ export default function HomePage() {
 
         {/* Trending Movies */}
         <section className="mt-8">
-        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Movies</h2>
-        <Slider {...sliderSettings} className="relative">
-          {trendingMovies.map((movie) => (
-            <div className="p-2" key={movie.id}>
-              <MovieCard movie={movie} />
-            </div>
-          ))}
-        </Slider>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Movies</h2>
+          <Slider {...sliderSettings} className="relative">
+            {trendingMovies.map((movie) => (
+              <div className="p-2" key={movie.id}>
+                <MovieCard movie={movie} />
+              </div>
+            ))}
+          </Slider>
         </section>
 
         {/* Trending Series */}
         <section className="mt-8">
-        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Series</h2>
-        <Slider {...sliderSettings} className="relative">
-          {trendingSeries.map((series) => (
-            <div className="p-2" key={series.id}>
-              <SeriesCard series={series} />
-            </div>
-          ))}
-        </Slider>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Trending Series</h2>
+          <Slider {...sliderSettings} className="relative">
+            {trendingSeries.map((series) => (
+              <div className="p-2" key={series.id}>
+                <SeriesCard series={series} />
+              </div>
+            ))}
+          </Slider>
         </section>
 
         {/* Top Rated Movies */}
         <section className="mt-8">
-        <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Top Rated Movies</h2>
-        <Slider {...sliderSettings} className="relative">
-          {topRatedMovies.map((movie) => (
-            <div className="p-2" key={movie.id}>
-              <MovieCard movie={movie} />
-            </div>
-          ))}
-        </Slider>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-center">Top Rated Movies</h2>
+          <Slider {...sliderSettings} className="relative">
+            {topRatedMovies.map((movie) => (
+              <div className="p-2" key={movie.id}>
+                <MovieCard movie={movie} />
+              </div>
+            ))}
+          </Slider>
         </section>
 
         {/* Popular Actors */}

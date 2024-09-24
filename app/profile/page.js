@@ -1,24 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../firebase";
+import { useUser, clerkClient } from "@clerk/nextjs"; // Import clerkClient
 import axios from "axios";
 import MovieSlider from "../../components/MovieSlider";
 import SeriesSlider from "../../components/SeriesSlider";
 import MovieCard from "../../components/MovieCard";
 import SeriesCard from "../../components/SeriesCard";
 import { toast, ToastContainer } from "react-toastify";
-import { Parallax } from "react-parallax";
+import Image from "next/image";
+import backgroundImage from "../../assets/3.jpg"; // Adjust the path as necessary
 import "react-toastify/dist/ReactToastify.css";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Firebase imports for image upload
-import { updateProfile } from "firebase/auth";
-import { storage } from "../firebase"; // Firebase storage instance
-import Image from 'next/image'; // If you're using Next.js for image optimization
-import backgroundImage from '../../assets/3.jpg'; // Adjust the path as necessary
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
-  const [tmdbSessionId, setTmdbSessionId] = useState(null);
+  const { user, isLoaded, isSignedIn } = useUser(); // Clerk user hook
   const [profile, setProfile] = useState(null);
   const [favoriteMovies, setFavoriteMovies] = useState([]);
   const [favoriteSeries, setFavoriteSeries] = useState([]);
@@ -27,23 +22,30 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("Watchlist");
   const [username, setUsername] = useState("");
   const [newProfilePic, setNewProfilePic] = useState(null);
-  const [profilePicUrl, setProfilePicUrl] = useState(null); // Store the profile picture URL
+  const [profilePicUrl, setProfilePicUrl] = useState("/assets/user.png"); // Default image path
+  const [memberSince, setMemberSince] = useState(null); // Store the member since date
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch the Firebase authenticated user data
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        setUsername(firebaseUser.displayName || "");
-        setProfilePicUrl(firebaseUser.photoURL || "../../assets/user.png"); // Set default image if no profile pic
-      } else {
-        router.push("/sign-in");
-      }
-    });
-    setTmdbSessionId(localStorage.getItem("session_id"));
-    return () => unsubscribe();
-  }, [router]);
+    const storedUsername = localStorage.getItem("username");
+    const storedProfilePic = localStorage.getItem("profilePicUrl");
+
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+
+    if (storedProfilePic) {
+      setProfilePicUrl(storedProfilePic);
+    }
+
+    if (user) {
+      // Set the profile pic URL to default if not set
+      setProfilePicUrl(storedProfilePic || user.profileImageUrl || "/assets/user.png");
+      // Format the "Member Since" date
+      const createdAtDate = new Date(user.createdAt);
+      setMemberSince(createdAtDate.toLocaleDateString());
+    }
+  }, [isSignedIn, user, router]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -95,32 +97,26 @@ export default function Profile() {
   const handleProfilePicChange = (e) => {
     if (e.target.files[0]) {
       setNewProfilePic(e.target.files[0]);
+
+      // Create a URL for the newly selected image to preview it
+      const imageUrl = URL.createObjectURL(e.target.files[0]);
+      setProfilePicUrl(imageUrl); // Immediately show the selected image
     }
   };
 
   // Handle profile update (username and profile picture)
   const handleProfileUpdate = async () => {
     try {
-      let profilePicUrlUpdated = profilePicUrl;
-  
-      // If the user uploaded a new profile picture, upload it to Firebase storage
-      if (newProfilePic) {
-        const storageRef = ref(storage, `profilePictures/${user.uid}`);
-  
-        // Upload the file and get its download URL
-        const snapshot = await uploadBytes(storageRef, newProfilePic);
-  
-        // Ensure we can retrieve the download URL of the uploaded file
-        profilePicUrlUpdated = await getDownloadURL(snapshot.ref);
-        setProfilePicUrl(profilePicUrlUpdated); // Update the state with the new profile pic URL
+      if (!isLoaded || !isSignedIn) {
+        toast.error("User is not signed in.");
+        return;
       }
-  
-      // Update the user's profile in Firebase Auth
-      await updateProfile(user, {
-        displayName: username,
-        photoURL: profilePicUrlUpdated,
-      });
-  
+
+      // Save the username and profile picture URL in local storage
+      localStorage.setItem("username", username);
+      localStorage.setItem("profilePicUrl", profilePicUrl);
+
+      // Notify user of successful update
       toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -158,60 +154,57 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-    <section className="relative bg-cover bg-center w-full min-h-[45vh]">
-    {/* Background Image */}0
-    <Image
-      className="absolute inset-0 h-full w-full object-cover"
-      src={backgroundImage}
-      alt="Background Image"
-      layout="fill"
-      priority // Ensures the image loads quickly
-    />
+      <section className="relative bg-cover bg-center w-full min-h-[45vh]">
+        {/* Background Image */}
+        <Image
+          className="absolute inset-0 h-full w-full object-cover"
+          src={backgroundImage}
+          alt="Background Image"
+          layout="fill"
+          priority // Ensures the image loads quickly
+        />
 
-    {/* Dark Overlay */}
-    <div className="absolute inset-0 bg-black opacity-40"></div>
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black opacity-40"></div>
 
-    {/* Content */}
-    <div className="relative z-10 w-full max-w-6xl mx-auto py-12">
-      <div className="flex flex-col lg:flex-row lg:space-x-8 items-center">
-        {user && (
-          <>
-            <img
-              src={profilePicUrl}
-              alt={user.email}
-              className="rounded-full shadow-lg object-cover h-24 w-24 lg:h-32 lg:w-32"
-            />
-            <div className="lg:w-2/3">
-              <h1 className="text-4xl font-bold text-white">{username || user.email}</h1>
-              <p className="text-lg text-white">
-                <strong>Email:</strong> {user.email}
-              </p>
-              <p className="text-lg text-white">
-                <strong>User ID:</strong> {user.uid}
-              </p>
-            </div>
-          </>
-        )}
-        {tmdbSessionId && (
-          <div>
-            <p className="text-lg text-white">
-              <strong>TMDB Session ID:</strong> {tmdbSessionId}
-            </p>
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-6xl mx-auto py-12">
+          <div className="flex flex-col lg:flex-row lg:space-x-8 items-center">
+            {isSignedIn && user ? (
+              <>
+                <img
+                  src={profilePicUrl}
+                  alt={user.emailAddresses[0].emailAddress}
+                  className="rounded-full shadow-lg object-cover h-24 w-24 lg:h-32 lg:w-32"
+                />
+                <div className="lg:w-2/3">
+                  <h1 className="text-4xl font-bold text-white">{username || user.emailAddresses[0].emailAddress}</h1>
+                  <p className="text-lg text-white">
+                    <strong>Email:</strong> {user.emailAddresses[0].emailAddress}
+                  </p>
+                  <p className="text-lg text-white">
+                    <strong>User ID:</strong> {user.id}
+                  </p>
+                  <p className="text-lg text-white">
+                    <strong>Member Since:</strong> {memberSince}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <h1 className="text-4xl font-bold text-white">Welcome, Guest!</h1>
+            )}
           </div>
-        )}
-      </div>
-    </div>
-  </section>
+        </div>
+      </section>
 
       <div className="container mx-auto px-4 mt-4">
         <div className="flex justify-around mb-4 border bg-gray-800 rounded p-2 border-gray-700">
           {["Watchlist", "Favorites", "Edit Profile"].map((tab) => (
             <button
               key={tab}
-              className={`py-2 px-4 rounded-md ${
-                activeTab === tab ? "bg-red-500" : "bg-gray-600 hover:bg-gray-700"
-              }`}
+              className={`py-2 px-4 rounded-md ${activeTab === tab ? "bg-red-500" : "bg-gray-600 hover:bg-gray-700"}`}
               onClick={() => setActiveTab(tab)}
+              disabled={activeTab === tab}
             >
               {tab}
             </button>
@@ -228,9 +221,8 @@ export default function Profile() {
                 renderMovieCards(watchlistMovies)
               )
             ) : (
-              renderEmptyState("watchlist movies")
+              renderEmptyState("movies")
             )}
-
             <h2 className="text-2xl font-bold text-white mb-4">Watchlist Series</h2>
             {watchlistSeries.length > 0 ? (
               watchlistSeries.length >= 6 ? (
@@ -239,7 +231,7 @@ export default function Profile() {
                 renderSeriesCards(watchlistSeries)
               )
             ) : (
-              renderEmptyState("watchlist series")
+              renderEmptyState("series")
             )}
           </>
         )}
@@ -254,9 +246,8 @@ export default function Profile() {
                 renderMovieCards(favoriteMovies)
               )
             ) : (
-              renderEmptyState("favorite movies")
+              renderEmptyState("movies")
             )}
-
             <h2 className="text-2xl font-bold text-white mb-4">Favorite Series</h2>
             {favoriteSeries.length > 0 ? (
               favoriteSeries.length >= 6 ? (
@@ -265,40 +256,33 @@ export default function Profile() {
                 renderSeriesCards(favoriteSeries)
               )
             ) : (
-              renderEmptyState("favorite series")
+              renderEmptyState("series")
             )}
           </>
         )}
 
         {activeTab === "Edit Profile" && (
-          <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="bg-gray-800 p-4 rounded">
             <h2 className="text-2xl font-bold text-white mb-4">Edit Profile</h2>
-
             <div className="mb-4">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300">
-                Username
-              </label>
+              <label className="block text-white mb-2">Username</label>
               <input
                 type="text"
-                id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 p-2 block w-full bg-gray-700 border-gray-600 text-white rounded-md"
+                className="bg-gray-700 text-white px-3 py-2 rounded w-full"
+                placeholder="Enter new username"
               />
             </div>
-
             <div className="mb-4">
-              <label htmlFor="profilePic" className="block text-sm font-medium text-gray-300">
-                Profile Picture
-              </label>
+              <label className="block text-white mb-2">Profile Picture</label>
               <input
                 type="file"
-                id="profilePic"
+                accept="image/*"
                 onChange={handleProfilePicChange}
-                className="mt-1 block w-full text-gray-400"
+                className="bg-gray-700 text-white px-3 py-2 rounded w-full"
               />
             </div>
-
             <button
               onClick={handleProfileUpdate}
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
@@ -308,8 +292,7 @@ export default function Profile() {
           </div>
         )}
       </div>
-
-      <ToastContainer position="top-right" />
+      <ToastContainer />
     </div>
   );
 }

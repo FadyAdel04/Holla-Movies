@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { UserCircleIcon } from "@heroicons/react/solid";
 import { Parallax } from "react-parallax";
 import axios from "axios";
+import { useUser } from "@clerk/nextjs";
 import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark } from "react-icons/fa";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -28,69 +29,94 @@ export default function SeriesDetailsClient({ series, credits, seasons, external
   const [activeSeasonTab, setActiveSeasonTab] = useState('All Seasons');
   const [selectedVideo, setSelectedVideo] = useState(videos.length > 0 ? videos[0] : null);
   const videoPlayerRef = useRef(null);
-
+  const { user } = useUser();
   
   useEffect(() => {
-    async function fetchFavoriteStatus() {
-      try {
-        const response = await axios.get(`/api/favorites/series/${series.id}`);
-        setIsFavorite(response.data.isFavorite);
-      } catch (error) {
-        console.error("Error fetching favorite status:", error);
+    // Fetch the current favorite and watchlist status for this series
+    const fetchStatus = async () => {
+      if (user) {
+        try {
+          const [favResponse, watchlistResponse] = await Promise.all([
+            axios.get(`https://api.themoviedb.org/3/account/${user.id}/favorite/tv`, {
+              headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}` },
+            }),
+            axios.get(`https://api.themoviedb.org/3/account/${user.id}/watchlist/tv`, {
+              headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}` },
+            }),
+          ]);
+
+          // Check if the series is in the user's favorite or watchlist
+          const isFav = favResponse.data.results.some((item) => item.id === series.id);
+          const isWatchlist = watchlistResponse.data.results.some((item) => item.id === series.id);
+
+          setIsFavorite(isFav);
+          setIsInWatchlist(isWatchlist);
+        } catch (error) {
+          console.error("Error fetching favorite or watchlist status", error);
+        }
       }
-    }
+    };
 
-    async function fetchWatchlistStatus() {
-      try {
-        const response = await axios.get(`/api/watchlist/series/${series.id}`);
-        setIsInWatchlist(response.data.isInWatchlist);
-      } catch (error) {
-        console.error("Error fetching watchlist status:", error);
-      }
-    }
+    fetchStatus();
+  }, [user, series.id]);
 
-    async function fetchReviews() {
-      try {
-        const response = await axios.get(
-          `https://api.themoviedb.org/3/tv/${series.id}/reviews`,
-          {
-            params: { api_key: API_KEY, language: "en-US", page: 1 },
-          }
-        );
-        setReviewsList(response.data.results);
-      } catch (error) {
-        console.error("Error fetching series reviews:", error);
-      }
-    }
-
-    fetchFavoriteStatus();
-    fetchWatchlistStatus();
-    fetchReviews();
-  }, [series.id]);
-
-  const toggleFavorite = async () => {
+  const handleToggleFavorite = async () => {
     try {
-      await axios.post(`/api/favorites/series/${series.id}`, { favorite: !isFavorite });
-      setIsFavorite(!isFavorite);
-      toast(isFavorite ? "Removed from favorites!" : "Added to favorites!", {
-        position: "bottom-right",
-        theme: "dark",
-      });
+      await axios.post(
+        `https://api.themoviedb.org/3/account/${user.id}/favorite`,
+        {
+          media_type: "tv",
+          media_id: series.id,
+          favorite: !isFavorite, // Toggle favorite status
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      setIsFavorite(!isFavorite); // Update state after success
+  
+      // Change toast messages based on the action
+      if (isFavorite) {
+        toast.info(`Removed ${series.name} from favorites!`); // Info toast for removal with series name
+      } else {
+        toast.success(`Added ${series.name} to favorites!`); // Success toast for addition with series name
+      }
     } catch (error) {
-      console.error("Error updating favorite status:", error);
+      console.error("Error toggling favorite", error);
+      toast.error("Failed to update favorites.");
     }
   };
-
-  const toggleWatchlist = async () => {
+  
+  const handleToggleWatchlist = async () => {
     try {
-      await axios.post(`/api/watchlist/series/${series.id}`, { watchlist: !isInWatchlist });
-      setIsInWatchlist(!isInWatchlist);
-      toast(isInWatchlist ? "Removed from watchlist!" : "Added to watchlist!", {
-        position: "bottom-right",
-        theme: "dark",
-      });
+      await axios.post(
+        `https://api.themoviedb.org/3/account/${user.id}/watchlist`,
+        {
+          media_type: "tv",
+          media_id: series.id,
+          watchlist: !isInWatchlist, // Toggle watchlist status
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      setIsInWatchlist(!isInWatchlist); // Update state after success
+  
+      // Change toast messages based on the action
+      if (isInWatchlist) {
+        toast.info(`Removed ${series.name} from watchlist!`); // Info toast for removal with series name
+      } else {
+        toast.success(`Added ${series.name} to watchlist!`); // Success toast for addition with series name
+      }
     } catch (error) {
-      console.error("Error updating watchlist status:", error);
+      console.error("Error toggling watchlist", error);
+      toast.error("Failed to update watchlist.");
     }
   };
 
@@ -134,12 +160,13 @@ export default function SeriesDetailsClient({ series, credits, seasons, external
                   {series.name} <span className="text-gray-400">{series.first_air_date.slice(0, 4)}</span>
                 </h1>
                 <div className="flex items-center space-x-3">
-                  <div className="text-red-500 cursor-pointer" onClick={toggleFavorite}>
-                    {isFavorite ? <FaHeart size={28} /> : <FaRegHeart size={28} />}
-                  </div>
-                  <div className="text-yellow-500 cursor-pointer" onClick={toggleWatchlist}>
-                    {isInWatchlist ? <FaBookmark size={28} /> : <FaRegBookmark size={28} />}
-                  </div>
+                <div className="text-red-500 cursor-pointer" onClick={handleToggleFavorite}>
+                {isFavorite ? <FaHeart size={28} className="text-red-500" /> : <FaRegHeart size={28} className="text-white" />}
+              </div>
+              <div className="text-yellow-500 cursor-pointer" onClick={handleToggleWatchlist}>
+              {isInWatchlist ? <FaBookmark size={28} className="text-yellow-500" /> : <FaRegBookmark size={28} className="text-white" />}
+
+              </div>
                 </div>
               </div>
 
