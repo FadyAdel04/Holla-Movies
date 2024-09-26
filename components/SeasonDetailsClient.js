@@ -147,25 +147,27 @@ export default function SeasonDetailsClient({ season, episodes, credits, videos,
 
       {/* Episodes Section */}
       {episodes && episodes.length > 0 && (
-        <div className="container px-4 mt-10">
-          <h2 className="text-2xl font-bold mb-4">Episodes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="container mx-auto px-4 mt-10">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">Episodes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
             {episodes.map((episode) => (
               <div
                 key={episode.id}
-                className="flex space-x-4 p-4 bg-gray-800 rounded-lg shadow-lg"
+                className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 p-4 bg-gray-800 rounded-lg shadow-lg"
               >
                 <img
                   src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
                   alt={episode.name}
-                  className="w-48 h-28 object-cover rounded-lg"
+                  className="w-full sm:w-48 h-28 object-cover rounded-lg"
                 />
                 <div className="flex flex-col justify-between w-full">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-white">{episode.name}</h3>
-                    <span className="text-red-500 text-2xl font-bold">{episode.episode_number}</span>
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-lg sm:text-xl font-bold text-white">{episode.name}</h3>
+                    <span className="text-red-500 text-xl sm:text-2xl font-bold">
+                      {episode.episode_number}
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center space-x-2 mt-2">
                     <span className="text-yellow-400">⭐ {episode.vote_average}</span>
                     <span className="text-gray-400">
                       {new Date(episode.air_date).toLocaleDateString('en-GB', {
@@ -176,7 +178,9 @@ export default function SeasonDetailsClient({ season, episodes, credits, videos,
                     </span>
                     <span className="text-gray-400">{episode.runtime} min</span>
                   </div>
-                  <p className="text-sm text-gray-300 mt-2 line-clamp-2">{episode.overview}</p>
+                  <p className="text-sm text-gray-300 mt-2 line-clamp-2">
+                    {episode.overview}
+                  </p>
                 </div>
               </div>
             ))}

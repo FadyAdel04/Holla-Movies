@@ -42,6 +42,10 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
     }
   };
 
+  const handleVideoClick = (video) => {
+    setSelectedVideo(video); // Update the selected video
+  };
+
   useEffect(() => {
     async function fetchVideos() {
       try {
@@ -405,7 +409,7 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
             title={selectedVideo ? selectedVideo.name : "Select a video"}
           />
         </div>
-
+    
         <div className="overflow-x-auto whitespace-nowrap space-x-4 flex py-4">
           {videos.map((video) => (
             <div
@@ -418,7 +422,7 @@ export default function MovieDetailsClient({ movie, credits, productionCompanies
                 alt={video.name}
                 className="rounded-lg shadow-lg w-40 h-24 object-cover"
               />
-              <p className="mt-2 text-center text-sm">{video.name}</p>
+              <p className="mt-2 text-center text-sm w-40 truncate">{video.name}</p>
             </div>
           ))}
         </div>
